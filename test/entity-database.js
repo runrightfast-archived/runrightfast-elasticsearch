@@ -31,12 +31,22 @@ describe('EntityDatabase', function() {
 		port : 9200
 	}).ejs;
 
+	var idsToDelete = [];
+
 	var db = new EntityDatabase({
 		ejs : ejs,
 		index : 'EntityDatabaseSpec'.toLowerCase(),
 		type : 'EntityDatabaseTestDoc'.toLowerCase(),
 		entityConstructor : Entity,
 		logLevel : 'DEBUG'
+	});
+
+	afterEach(function(done) {
+		when(db.deleteEntities(idsToDelete), function(result) {
+			console.log('afterEach() : deleteEntities() : ' + JSON.stringify(result, undefined, 2));
+			done();
+		}, done);
+
 	});
 
 	it('can create a new Entity', function(done) {
@@ -176,5 +186,131 @@ describe('EntityDatabase', function() {
 				done();
 			}, done);
 		}, done);
+	});
+
+	it('can create multiple entities in a bulk request', function(done) {
+		var entities = [];
+		for ( var i = 0; i < 10; i++) {
+			entities.push(new Entity());
+		}
+
+		when(db.createEntities(entities), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			var items = result.items;
+			expect(items.length).to.equal(10);
+			items.forEach(function(item) {
+				expect(item.index.ok).to.equal(true);
+			});
+
+			var ids = entities.map(function(entity) {
+				return entity.id;
+			});
+			idsToDelete = idsToDelete.concat(ids);
+			when(db.getEntities(ids), function(result) {
+				console.log(JSON.stringify(result, undefined, 2));
+				expect(result.docs.length).to.equal(10);
+				done();
+			}, done);
+
+		}, done);
+
+	});
+
+	it('can delete an Entity', function(done) {
+		var entity = new Entity();
+		when(db.createEntity(entity), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			var deletePromise = when(db.deleteEntity(entity.id), function(result) {
+				console.log('delete result: ' + JSON.stringify(result, undefined, 2));
+				return result;
+			}, done);
+
+			when(deletePromise, function(result) {
+				when(db.getEntity(result._id), function(result) {
+					console.log(JSON.stringify(result, undefined, 2));
+					done(new Error('expected entity to no exist'));
+				}, function(err) {
+					console.log(JSON.stringify(err, undefined, 2));
+					done();
+
+				});
+			}, done);
+		}, done);
+	});
+
+	it('can bulk delete entities', function(done) {
+		var entities = [];
+		for ( var i = 0; i < 10; i++) {
+			entities.push(new Entity());
+		}
+
+		when(db.createEntities(entities), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			var items = result.items;
+			expect(items.length).to.equal(10);
+			items.forEach(function(item) {
+				expect(item.index.ok).to.equal(true);
+			});
+
+			var ids = entities.map(function(entity) {
+				return entity.id;
+			});
+			when(db.deleteEntities(ids), function(result) {
+				console.log('bulf delete response: ' + JSON.stringify(result, undefined, 2));
+				try {
+					expect(result.items.length).to.equal(10);
+					result.items.forEach(function(item) {
+						console.log('item: ' + JSON.stringify(item, undefined, 2));
+						expect(item['delete'].found).to.equal(true);
+						expect(item['delete'].ok).to.equal(true);
+					});
+					done();
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+
+		}, done);
+	});
+
+	it('can count the total number of entities', function(done) {
+		var entities = [];
+		for ( var i = 0; i < 10; i++) {
+			entities.push(new Entity());
+		}
+
+		when(db.getCount(), function(result) {
+			console.log('count: ' + JSON.stringify(result, undefined, 2));
+			var countBefore = result.count;
+
+			when(db.createEntities(entities), function(result) {
+				console.log(JSON.stringify(result, undefined, 2));
+				var items = result.items;
+				expect(items.length).to.equal(10);
+				items.forEach(function(item) {
+					expect(item.index.ok).to.equal(true);
+				});
+
+				var ids = entities.map(function(entity) {
+					return entity.id;
+				});
+				idsToDelete = idsToDelete.concat(ids);
+				when(db.getEntities(ids), function(result) {
+					console.log(JSON.stringify(result, undefined, 2));
+					expect(result.docs.length).to.equal(10);
+
+					when(db.getCount(), function(result) {
+						console.log('count: ' + JSON.stringify(result, undefined, 2));
+						var countAfter = result.count;
+						console.log('countBefore = ' + countBefore + ' | countAfter = ' + countAfter);
+						done();
+					}, done);
+
+				}, done);
+
+			}, done);
+
+		}, done);
+
 	});
 });
