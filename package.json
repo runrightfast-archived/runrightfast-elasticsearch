@@ -12,7 +12,7 @@
 			"pattern":[
 				"lib/elasticsearch-client.js",
 				"lib/elasticsearch-client-manager.js",
-				"lib/entity-database.js"
+				"lib/entity-database.jsXXX"
 			]
 		}		
 	},

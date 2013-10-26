@@ -13,8 +13,26 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-
 'use strict';
-module.exports.ElasticSearchClient = require('./elasticsearch-client');
-module.exports.elasticsearchClientManager = require('./elasticsearch-client-manager');
-module.exports.EntityDatabase = require('./entity-database');
+
+var expect = require('chai').expect;
+var lodash = require('lodash');
+
+var ElasticSearchClient = require('..').ElasticSearchClient;
+
+describe('ElasticSearchClient', function() {
+	it('must be constructed with a host and port', function(done) {
+		var ejs = new ElasticSearchClient({
+			host : 'localhost',
+			port : 9200
+		}).ejs;
+
+		var clusterHealth = ejs.ClusterHealth();
+		clusterHealth.doHealth(function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			done();
+		}, function(error) {
+			done(error);
+		});
+	});
+});
