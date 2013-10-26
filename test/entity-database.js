@@ -51,6 +51,7 @@ describe('EntityDatabase', function() {
 
 	it('can create a new Entity', function(done) {
 		var entity = new Entity();
+		idsToDelete.push(entity.id);
 		when(db.createEntity(entity), function(result) {
 			console.log(JSON.stringify(result, undefined, 2));
 			done();
@@ -59,6 +60,7 @@ describe('EntityDatabase', function() {
 
 	it('creating an Entity with the same id will fail', function(done) {
 		var entity = new Entity();
+		idsToDelete.push(entity.id);
 		when(db.createEntity(entity), function(result) {
 			console.log(JSON.stringify(result, undefined, 2));
 			when(db.createEntity(entity), function(result) {
@@ -74,6 +76,7 @@ describe('EntityDatabase', function() {
 
 	it('can get a new Entity', function(done) {
 		var entity = new Entity();
+		idsToDelete.push(entity.id);
 		when(db.createEntity(entity), function(result) {
 			console.log('create response:\n' + JSON.stringify(result, undefined, 2));
 			console.log('response type: ' + typeof result);
@@ -100,6 +103,7 @@ describe('EntityDatabase', function() {
 
 	it('can set an Entity', function(done) {
 		var entity = new Entity();
+		idsToDelete.push(entity.id);
 		when(db.createEntity(entity), function(result) {
 			console.log('create response:\n' + JSON.stringify(result, undefined, 2));
 			console.log('response type: ' + typeof result);
@@ -128,6 +132,7 @@ describe('EntityDatabase', function() {
 
 	it('setting an Entity with an expired version will fail', function(done) {
 		var entity = new Entity();
+		idsToDelete.push(entity.id);
 		when(db.createEntity(entity), function(result) {
 			console.log('create response:\n' + JSON.stringify(result, undefined, 2));
 			console.log('response type: ' + typeof result);
@@ -178,6 +183,7 @@ describe('EntityDatabase', function() {
 		when(when.all(promises), function(results) {
 			lodash.forEach(results, function(result) {
 				ids.push(result._id);
+				idsToDelete.push(result._id);
 			});
 			console.log(ids);
 			when(db.getEntities(ids), function(result) {
