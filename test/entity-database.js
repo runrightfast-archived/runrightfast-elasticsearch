@@ -38,15 +38,19 @@ describe('EntityDatabase', function() {
 		index : 'EntityDatabaseSpec'.toLowerCase(),
 		type : 'EntityDatabaseTestDoc'.toLowerCase(),
 		entityConstructor : Entity,
-		logLevel : 'DEBUG'
+		logLevel : 'WARN'
 	});
 
 	afterEach(function(done) {
-		when(db.deleteEntities(idsToDelete), function(result) {
-			console.log('afterEach() : deleteEntities() : ' + JSON.stringify(result, undefined, 2));
+		if (idsToDelete.length > 0) {
+			when(db.deleteEntities(idsToDelete), function(result) {
+				console.log('afterEach() : deleteEntities() : ' + result.items.length);
+				idsToDelete = [];
+				done();
+			}, done);
+		} else {
 			done();
-		}, done);
-
+		}
 	});
 
 	it('can create a new Entity', function(done) {
@@ -318,5 +322,109 @@ describe('EntityDatabase', function() {
 
 		}, done);
 
+	});
+
+	it('can find all and page through the results with default sort : updatedOn desc', function(done) {
+		var entities = [];
+		var promises = [];
+		for ( var i = 0; i < 10; i++) {
+			entities.push(new Entity());
+			promises.push(db.createEntity(entities[i], true));
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(when.all(promises), function(result) {
+			console.log('create results: ' + JSON.stringify(result, undefined, 2));
+			when(db.findAll(), function(result) {
+				console.log('db.getEntitiesByCreatedOn() result: ' + JSON.stringify(result, undefined, 2));
+				console.log('result.hits.total = ' + result.hits.total);
+
+				var updatedOn;
+				var ids = [];
+				try {
+					result.hits.hits.forEach(function(hit) {
+						ids.push(hit._id);
+						if (lodash.isUndefined(updatedOn)) {
+							updatedOn = hit._source.updatedOn;
+						} else {
+							expect(updatedOn).to.be.gte(hit._source.updatedOn);
+							updatedOn = hit._source.updatedOn;
+						}
+					});
+
+					promises = [];
+					var from = 0;
+					var searchParams = {
+						from : from,
+						pageSize : 2
+					};
+					while (promises.length < 5) {
+						promises.push(db.findAll(searchParams));
+						from += 2;
+						searchParams = {
+							from : from,
+							pageSize : 2
+						};
+					}
+
+					console.log('+++ promises.length = ' + promises.length);
+
+					when(when.all(promises), function(results) {
+						try {
+							var page = 0;
+							results.forEach(function(result) {
+								expect(result.hits.hits.length).to.equal(2);
+								console.log('page[' + page++ + '] : ' + JSON.stringify(result, undefined, 2));
+							});
+							done();
+						} catch (err) {
+							console.log(err);
+						}
+					}, done);
+
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+		}, done);
+	});
+
+	it('can find all and page through the results with specified sort', function(done) {
+		var entities = [];
+		var promises = [];
+		for ( var i = 0; i < 10; i++) {
+			entities.push(new Entity());
+			promises.push(db.createEntity(entities[i], true));
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(when.all(promises), function(result) {
+			console.log('create results: ' + JSON.stringify(result, undefined, 2));
+			when(db.findAll({
+				sort : {
+					field : 'createdOn',
+					descending : false
+				}
+			}), function(result) {
+				console.log('db.getEntitiesByCreatedOn() result: ' + JSON.stringify(result, undefined, 2));
+				console.log('result.hits.total = ' + result.hits.total);
+
+				var createdOn;
+				try {
+					result.hits.hits.forEach(function(hit) {
+						if (lodash.isUndefined(createdOn)) {
+							createdOn = hit._source.createdOn;
+						} else {
+							expect(createdOn).to.be.lte(hit._source.createdOn);
+							createdOn = hit._source.createdOn;
+						}
+					});
+
+					done();
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+		}, done);
 	});
 });
