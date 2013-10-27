@@ -38,7 +38,7 @@ describe('EntityDatabase', function() {
 		index : 'EntityDatabaseSpec'.toLowerCase(),
 		type : 'EntityDatabaseTestDoc'.toLowerCase(),
 		entityConstructor : Entity,
-		logLevel : 'WARN'
+		logLevel : 'DEBUG'
 	});
 
 	afterEach(function(done) {
@@ -51,6 +51,65 @@ describe('EntityDatabase', function() {
 		} else {
 			done();
 		}
+	});
+
+	it('will throw an Error when constructed with invalid settings', function(done) {
+		try {
+			new EntityDatabase();
+			done(new Error('expected validation error when no settings are provided'));
+		} catch (err) {
+			console.log(err);
+		}
+
+		try {
+			new EntityDatabase({
+				index : 'EntityDatabaseSpec'.toLowerCase(),
+				type : 'EntityDatabaseTestDoc'.toLowerCase(),
+				entityConstructor : Entity,
+				logLevel : 'DEBUG'
+			});
+			done(new Error('expected validation error when ejs is missing'));
+		} catch (err) {
+			console.log(err);
+		}
+
+		try {
+			new EntityDatabase({
+				ejs : ejs,
+				type : 'EntityDatabaseTestDoc'.toLowerCase(),
+				entityConstructor : Entity,
+				logLevel : 'DEBUG'
+			});
+			done(new Error('expected validation error when index is missing'));
+		} catch (err) {
+			console.log(err);
+		}
+
+		try {
+			new EntityDatabase({
+				ejs : ejs,
+				index : 'EntityDatabaseSpec'.toLowerCase(),
+				entityConstructor : Entity,
+				logLevel : 'DEBUG'
+			});
+			done(new Error('expected validation error when type is missing'));
+		} catch (err) {
+			console.log(err);
+		}
+
+		try {
+			new EntityDatabase({
+				ejs : ejs,
+				index : 'EntityDatabaseSpec'.toLowerCase(),
+				type : 'EntityDatabaseTestDoc'.toLowerCase(),
+				logLevel : 'DEBUG'
+			});
+			done(new Error('expected validation error when entityConstructor is missing'));
+		} catch (err) {
+			console.log(err);
+			done();
+		}
+
 	});
 
 	it('can create a new Entity', function(done) {
@@ -78,6 +137,71 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+	it('#createEntity validates the entity passed in before saving', function(done) {
+		var promises = [];
+		promises.push(when(db.createEntity(), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			done(new Error('expected create to fail'));
+		}, function(err) {
+			console.log('+++ ' + err);
+		}));
+
+		promises.push(when(db.createEntity(new Entity(), 'true'), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			done(new Error('expected create to fail'));
+		}, function(err) {
+			console.log('+++ ' + err);
+		}));
+
+		var entity = new Entity();
+		entity.createdBy = new Date();
+		promises.push(when(db.createEntity(entity), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			done(new Error('expected create to fail'));
+		}, function(err) {
+			console.log('+++ ' + err);
+		}));
+
+		when(when.all(promises), function() {
+			done();
+		}, done);
+	});
+
+	it('#setEntity validates the entity passed in before saving', function(done) {
+		var promises = [];
+		promises.push(when(db.setEntity(), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			done(new Error('expected create to fail'));
+		}, function(err) {
+			console.log('+++ ' + err);
+		}));
+
+		promises.push(when(db.setEntity({
+			entity : new Entity(),
+			version : 'a'
+		}), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			done(new Error('expected create to fail'));
+		}, function(err) {
+			console.log('+++ ' + err);
+		}));
+
+		var entity = new Entity();
+		entity.createdBy = new Date();
+		promises.push(when(db.setEntity({
+			entity : entity
+		}), function(result) {
+			console.log('saving invalid entity should have failed: ' + JSON.stringify(result, undefined, 2));
+			done(new Error('expected create to fail'));
+		}, function(err) {
+			console.log('+++ ' + err);
+		}));
+
+		when(when.all(promises), function() {
+			done();
+		}, done);
+	});
+
 	it('can get a new Entity', function(done) {
 		var entity = new Entity();
 		idsToDelete.push(entity.id);
@@ -101,6 +225,16 @@ describe('EntityDatabase', function() {
 			console.log(err);
 			expect(err.info).to.exist;
 			expect(err.code).to.equal(404);
+			done();
+		});
+	});
+
+	it('#getEntity - id is required', function(done) {
+		when(db.getEntity(), function(result) {
+			console.log('get response: ' + JSON.stringify(result, undefined, 2));
+			done(new Error('invalid args error'));
+		}, function(err) {
+			console.log(err);
 			done();
 		});
 	});
@@ -175,7 +309,7 @@ describe('EntityDatabase', function() {
 
 	it('can retrieve multiple entities in a single request', function(done) {
 		var promises = [];
-		for ( var i = 0; i < 10; i++) {
+		for (var i = 0; i < 10; i++) {
 			promises.push(when(db.createEntity(new Entity()), function(result) {
 				return result;
 			}, function(err) {
@@ -198,9 +332,51 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+	it('#getEntities validates that ids is an Array of Strings', function(done) {
+		var promises = [];
+		promises.push(when(db.getEntities(), function(result) {
+			console.log('no args passed validation ???');
+			done(new Error('Expected validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		promises.push(when(db.getEntities([ 1, 2 ]), function(result) {
+			console.log('[ 1, 2 ] passed validation ???');
+			done(new Error('Expected validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		promises.push(when(db.getEntities([ '1', 2 ]), function(result) {
+			console.log("[ '1', 2 ] passed validation ???");
+			done(new Error('Expected validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		promises.push(when(db.getEntities([ 1, '2' ]), function(result) {
+			console.log("[ 1, '2' ] passed validation ???");
+			done(new Error('Expected validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		promises.push(when(db.getEntities({}), function(result) {
+			console.log("[ 1, '2' ] passed validation ???");
+			done(new Error('Expected validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		when(when.all(promises), function() {
+			done();
+		}, done);
+	});
+
 	it('can create multiple entities in a bulk request', function(done) {
 		var entities = [];
-		for ( var i = 0; i < 10; i++) {
+		for (var i = 0; i < 10; i++) {
 			entities.push(new Entity());
 		}
 
@@ -226,6 +402,41 @@ describe('EntityDatabase', function() {
 
 	});
 
+	it('#createEntities validates its args', function(done) {
+		var promises = [];
+
+		promises.push(when(db.createEntities(), function() {
+			done(new Error('should have failed because of invalid args'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		promises.push(when(db.createEntities([ {
+			createdBy : new Date()
+		} ]), function() {
+			done(new Error('should have failed because of invalid args'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		when(when.all(promises), function() {
+			done();
+		}, done);
+	});
+
+	it('#createEntities with empty array returns undefined', function(done) {
+		when(db.createEntities([]), function(result) {
+			try {
+				expect(lodash.isUndefined(result)).to.equal(true);
+				done();
+			} catch (err) {
+				done(err);
+			}
+		}, function(err) {
+			console.log(err);
+		});
+	});
+
 	it('can delete an Entity', function(done) {
 		var entity = new Entity();
 		when(db.createEntity(entity), function(result) {
@@ -248,9 +459,29 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+	it('#deleteEntity - requires the id', function(done) {
+		var promises = [];
+
+		promises.push(when(db.deleteEntity(), function() {
+			done(new Error('expected args validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		promises.push(when(db.deleteEntity(1), function() {
+			done(new Error('expected args validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		when(when.all(promises), function() {
+			done();
+		}, done);
+	});
+
 	it('can bulk delete entities', function(done) {
 		var entities = [];
-		for ( var i = 0; i < 10; i++) {
+		for (var i = 0; i < 10; i++) {
 			entities.push(new Entity());
 		}
 
@@ -283,9 +514,40 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+	it('#deleteEntities - requires the id', function(done) {
+		var promises = [];
+
+		promises.push(when(db.deleteEntities(), function() {
+			done(new Error('expected args validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		promises.push(when(db.deleteEntities([ '1', 2 ]), function() {
+			done(new Error('expected args validation error'));
+		}, function(err) {
+			console.log(err);
+		}));
+
+		when(when.all(promises), function() {
+			done();
+		}, done);
+	});
+
+	it('#deleteEntities - passing in empty array returns undefined', function(done) {
+		when(db.deleteEntities([]), function(result) {
+			try {
+				expect(lodash.isUndefined(result)).to.equal(true);
+				done();
+			} catch (err) {
+				done(err);
+			}
+		}, done);
+	});
+
 	it('can count the total number of entities', function(done) {
 		var entities = [];
-		for ( var i = 0; i < 10; i++) {
+		for (var i = 0; i < 10; i++) {
 			entities.push(new Entity());
 		}
 
@@ -327,7 +589,7 @@ describe('EntityDatabase', function() {
 	it('can find all and page through the results with default sort : updatedOn desc', function(done) {
 		var entities = [];
 		var promises = [];
-		for ( var i = 0; i < 10; i++) {
+		for (var i = 0; i < 10; i++) {
 			entities.push(new Entity());
 			promises.push(db.createEntity(entities[i], true));
 			idsToDelete = idsToDelete.concat(entities[i].id);
@@ -392,7 +654,7 @@ describe('EntityDatabase', function() {
 	it('can find all and page through the results with specified sort', function(done) {
 		var entities = [];
 		var promises = [];
-		for ( var i = 0; i < 10; i++) {
+		for (var i = 0; i < 10; i++) {
 			entities.push(new Entity());
 			promises.push(db.createEntity(entities[i], true));
 			idsToDelete = idsToDelete.concat(entities[i].id);
@@ -428,6 +690,48 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+	it('#findAll - can specify search options : timeout, version, returnFields', function(done) {
+		var entities = [];
+		var promises = [];
+		for (var i = 0; i < 10; i++) {
+			entities.push(new Entity());
+			promises.push(db.createEntity(entities[i], true));
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(when.all(promises), function(result) {
+			console.log('create results: ' + JSON.stringify(result, undefined, 2));
+			when(db.findAll({
+				sort : {
+					field : 'createdOn',
+					descending : false
+				},
+				timeout : 100,
+				version : true,
+				returnFields : [ 'createdOn' ]
+			}), function(result) {
+				console.log('db.getEntitiesByCreatedOn() result: ' + JSON.stringify(result, undefined, 2));
+				console.log('result.hits.total = ' + result.hits.total);
+
+				var createdOn;
+				try {
+					result.hits.hits.forEach(function(hit) {
+						if (lodash.isUndefined(createdOn)) {
+							createdOn = hit.fields.createdOn;
+						} else {
+							expect(createdOn).to.be.lte(hit.fields.createdOn);
+							createdOn = hit.fields.createdOn;
+						}
+					});
+
+					done();
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+		}, done);
+	});
+
 	it('#findAll validates its params', function(done) {
 		when(db.findAll({
 			timeout : 'INVALID'
@@ -445,7 +749,7 @@ describe('EntityDatabase', function() {
 		var promises = [];
 		var now = Date.now();
 		var entity;
-		for ( var i = 0; i < 10; i++) {
+		for (var i = 0; i < 10; i++) {
 			entity = new Entity();
 			entity.updatedOn = new Date(now + (1000 * 60 * i));
 			entities.push(entity);
@@ -488,8 +792,11 @@ describe('EntityDatabase', function() {
 						descending : true
 					},
 					range : {
-						from : new Date(now + (1000 * 60 * 5))
+						from : new Date(now + (1000 * 60 * 5)),
+						includeLower : true,
+						includeUpper : true
 					}
+
 				}), function(result) {
 					console.log('db.findByField() result from 5 minutes ago: ' + JSON.stringify(result, undefined, 2));
 					console.log('result.hits.total = ' + result.hits.total);
@@ -535,7 +842,7 @@ describe('EntityDatabase', function() {
 		var promises = [];
 		var now = Date.now();
 		var entity;
-		for ( var i = 0; i < 10; i++) {
+		for (var i = 0; i < 10; i++) {
 			entity = new Entity();
 			entity.updatedOn = new Date(now + (1000 * 60 * i));
 			entities.push(entity);
