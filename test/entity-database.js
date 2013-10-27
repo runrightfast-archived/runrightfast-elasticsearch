@@ -427,4 +427,140 @@ describe('EntityDatabase', function() {
 			}, done);
 		}, done);
 	});
+
+	it('#findAll validates its params', function(done) {
+		when(db.findAll({
+			timeout : 'INVALID'
+		}), function(results) {
+			console.log(results);
+			done(new Error('expected validation error'));
+		}, function(err) {
+			console.log(err);
+			done();
+		});
+	});
+
+	it('#findByField can search within a field by range', function(done) {
+		var entities = [];
+		var promises = [];
+		var now = Date.now();
+		var entity;
+		for ( var i = 0; i < 10; i++) {
+			entity = new Entity();
+			entity.updatedOn = new Date(now + (1000 * 60 * i));
+			entities.push(entity);
+			promises.push(db.createEntity(entities[i], true));
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(when.all(promises), function(result) {
+			console.log('create results: ' + JSON.stringify(result, undefined, 2));
+			var search1 = when(db.findByField({
+				field : 'updatedOn',
+				sort : {
+					field : 'updatedOn',
+					descending : true
+				}
+			}), function(result) {
+				console.log('db.findByField() result: ' + JSON.stringify(result, undefined, 2));
+				console.log('result.hits.total = ' + result.hits.total);
+
+				var updatedOn;
+				try {
+					result.hits.hits.forEach(function(hit) {
+						if (lodash.isUndefined(updatedOn)) {
+							updatedOn = hit._source.updatedOn;
+						} else {
+							expect(updatedOn).to.be.gte(hit._source.updatedOn);
+							updatedOn = hit._source.updatedOn;
+						}
+					});
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+
+			var search2 = when(search1, function() {
+				when(db.findByField({
+					field : 'updatedOn',
+					sort : {
+						field : 'updatedOn',
+						descending : true
+					},
+					range : {
+						from : new Date(now + (1000 * 60 * 5))
+					}
+				}), function(result) {
+					console.log('db.findByField() result from 5 minutes ago: ' + JSON.stringify(result, undefined, 2));
+					console.log('result.hits.total = ' + result.hits.total);
+					console.log('result.hits.hits.length = ' + result.hits.hits.length);
+					try {
+						expect(result.hits.total).to.equal(5);
+						expect(result.hits.hits.length).to.equal(5);
+					} catch (err) {
+						done(err);
+					}
+				}, done);
+			}, done);
+
+			when(search2, function() {
+				when(db.findByField({
+					field : 'updatedOn',
+					sort : {
+						field : 'updatedOn',
+						descending : true
+					},
+					range : {
+						from : new Date(now + (1000 * 60 * 5)),
+						to : new Date(now + (1000 * 60 * 5))
+					}
+				}), function(result) {
+					console.log('db.findByField() result from 5 minutes ago: ' + JSON.stringify(result, undefined, 2));
+					console.log('result.hits.total = ' + result.hits.total);
+					console.log('result.hits.hits.length = ' + result.hits.hits.length);
+					try {
+						expect(result.hits.total).to.equal(1);
+						expect(result.hits.hits.length).to.equal(1);
+						done();
+					} catch (err) {
+						done(err);
+					}
+				}, done);
+			}, done);
+		}, done);
+	});
+
+	it('#findByField can search by field value', function(done) {
+		var entities = [];
+		var promises = [];
+		var now = Date.now();
+		var entity;
+		for ( var i = 0; i < 10; i++) {
+			entity = new Entity();
+			entity.updatedOn = new Date(now + (1000 * 60 * i));
+			entities.push(entity);
+			promises.push(db.createEntity(entities[i], true));
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(when.all(promises), function(result) {
+			console.log('create results: ' + JSON.stringify(result, undefined, 2));
+			when(db.findByField({
+				field : 'updatedOn',
+				value : new Date(now + (1000 * 60 * 5))
+			}), function(result) {
+				console.log('db.findByField() by updatedOn: ' + JSON.stringify(result, undefined, 2));
+				console.log('result.hits.total = ' + result.hits.total);
+				console.log('result.hits.hits.length = ' + result.hits.hits.length);
+				try {
+					expect(result.hits.total).to.equal(1);
+					expect(result.hits.hits.length).to.equal(1);
+					done();
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+
+		}, done);
+	});
 });
