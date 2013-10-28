@@ -854,7 +854,8 @@ describe('EntityDatabase', function() {
 			console.log('create results: ' + JSON.stringify(result, undefined, 2));
 			when(db.findByField({
 				field : 'updatedOn',
-				value : new Date(now + (1000 * 60 * 5))
+				value : new Date(now + (1000 * 60 * 5)),
+				returnFields : [ 'updatedOn' ]
 			}), function(result) {
 				console.log('db.findByField() by updatedOn: ' + JSON.stringify(result, undefined, 2));
 				console.log('result.hits.total = ' + result.hits.total);
