@@ -121,6 +121,18 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+	it('can refresh the index', function(done) {
+		var entity = new Entity();
+		idsToDelete.push(entity.id);
+		when(db.createEntity(entity), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			when(db.refreshIndex(), function(result) {
+				console.log('refresh result : ' + JSON.stringify(result, undefined, 2));
+				done();
+			}, done);
+		}, done);
+	});
+
 	it('creating an Entity with the same id will fail', function(done) {
 		var entity = new Entity();
 		idsToDelete.push(entity.id);
