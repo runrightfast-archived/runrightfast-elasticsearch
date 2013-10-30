@@ -641,30 +641,36 @@ describe('EntityDatabase', function() {
 			var countBefore = result.count;
 
 			when(db.createEntities(entities), function(result) {
-				console.log(JSON.stringify(result, undefined, 2));
-				var items = result.items;
-				expect(items.length).to.equal(10);
-				items.forEach(function(item) {
-					expect(item.index.ok).to.equal(true);
-				});
+				when(db.refreshIndex(),
+					function(){
+						console.log(JSON.stringify(result, undefined, 2));
+						var items = result.items;
+						expect(items.length).to.equal(10);
+						items.forEach(function(item) {
+							expect(item.index.ok).to.equal(true);
+						});
 
-				var ids = entities.map(function(entity) {
-					return entity.id;
-				});
-				idsToDelete = idsToDelete.concat(ids);
-				when(db.getEntities(ids), function(result) {
-					console.log(JSON.stringify(result, undefined, 2));
-					expect(result.docs.length).to.equal(10);
+						var ids = entities.map(function(entity) {
+							return entity.id;
+						});
+						idsToDelete = idsToDelete.concat(ids);
+						when(db.getEntities(ids), function(result) {
+							console.log(JSON.stringify(result, undefined, 2));
+							expect(result.docs.length).to.equal(10);
 
-					when(db.getCount(), function(result) {
-						console.log('count: ' + JSON.stringify(result, undefined, 2));
-						var countAfter = result.count;
-						console.log('countBefore = ' + countBefore + ' | countAfter = ' + countAfter);
-						done();
+							when(db.getCount(), function(result) {
+								console.log('count: ' + JSON.stringify(result, undefined, 2));
+								var countAfter = result.count;
+								console.log('countBefore = ' + countBefore + ' | countAfter = ' + countAfter);
+								try{
+									expect(countAfter).to.equal(10);
+									done();
+								}catch(err){
+									done(err);
+								}
+							}, done);
 					}, done);
-
-				}, done);
-
+				},done);
 			}, done);
 
 		}, done);
