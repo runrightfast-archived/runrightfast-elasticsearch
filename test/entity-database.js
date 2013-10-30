@@ -35,10 +35,53 @@ describe('EntityDatabase', function() {
 
 	var db = new EntityDatabase({
 		ejs : ejs,
-		index : 'EntityDatabaseSpec'.toLowerCase(),
-		type : 'EntityDatabaseTestDoc'.toLowerCase(),
+		index : 'entity_database_test',
+		type : 'entity_database_test',
 		entityConstructor : Entity,
 		logLevel : 'DEBUG'
+	});
+
+	before(function(done){
+		var indexSettings = {
+		    "settings" : {
+		        "number_of_shards" : 1
+		    },
+		    mappings:{
+			    "entity_database_test": {
+			       "_source" : {"compress" : true},
+			       "properties": {
+			            "_entityType": {
+			                "type": "string"
+			            },
+			            "createdOn": {
+			                "type": "date",
+			                "format": "dateOptionalTime"
+			            },
+			            "description": {
+			                "type": "string",
+			                "index" : "not_analyzed"
+			            },
+			            "id": {
+			                "type": "string",
+			                "index" : "not_analyzed"
+			            },
+			            "updatedOn": {
+			                "type": "date",
+			                "format": "dateOptionalTime"
+			            }
+			        }     
+				}
+			}
+		};
+
+		db.deleteIndex()
+			.then(function(){
+				db.createIndex(indexSettings)
+					.then(function(result){
+						console.log('created index: ' + JSON.stringify(result,undefined,2));
+						done();
+					},done);
+			},done);
 	});
 
 	afterEach(function(done) {
@@ -912,5 +955,83 @@ describe('EntityDatabase', function() {
 			}, done);
 
 		}, done);
+	});
+
+	it('#getMapping',function(done){
+		when(db.getMapping(),function(result){
+			console.log(JSON.stringify(result,undefined,2));
+			done();
+		},done);
+	});
+
+	it('#setMapping',function(done){
+		var mapping = {
+			    "entity_database_test": {
+			       "_source" : {"compress" : true},
+			       "properties": {
+			            "_entityType": {
+			                "type": "string"
+			            },
+			            "createdOn": {
+			                "type": "date",
+			                "format": "dateOptionalTime"
+			            },
+			            "description": {
+			                "type": "string",
+			                "index" : "not_analyzed"
+			            },
+			            "id": {
+			                "type": "string",
+			                "index" : "not_analyzed"
+			            },
+			            "updatedOn": {
+			                "type": "date",
+			                "format": "dateOptionalTime"
+			            }
+			        }     
+			}
+		};
+
+		when(db.setMapping(mapping),function(result){
+			console.log(JSON.stringify(result,undefined,2));
+			when(db.getMapping(),function(result){
+				console.log(JSON.stringify(result,undefined,2));
+				try{
+					done();
+				}catch(err){
+					done(err);
+				}
+			},done);
+		},done);
+	});
+
+	it('#setMapping - mapping param is required',function(done){
+		when(db.setMapping(),
+			function(result){
+				done(new Error('expected error'));
+			},function(err){
+				console.log(err);
+				done();
+			});
+	});
+
+	it('#createIndex - settings param is required',function(done){
+		when(db.createIndex(),
+			function(result){
+				done(new Error('expected error'));
+			},function(err){
+				console.log(err);
+				done();
+			});
+	});
+
+	it('#deleteEntity - refresh param must be a Boolean',function(done){
+		when(db.deleteEntity('adasda','adasda'),
+			function(result){
+				done(new Error('expected error'));
+			},function(err){
+				console.log(err);
+				done();
+			});
 	});
 });
