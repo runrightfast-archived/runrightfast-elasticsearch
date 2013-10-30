@@ -459,6 +459,36 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+	it('can delete an Entity and refresh the index immediately', function(done) {
+		var entity = new Entity();
+		entity.name = uuid();
+		when(db.createEntity(entity), function(result) {
+			console.log(JSON.stringify(result, undefined, 2));
+			var deletePromise = when(db.deleteEntity(entity.id), function(result) {
+				console.log('delete result: ' + JSON.stringify(result, undefined, 2));
+				return result;
+			}, done);
+
+			when(deletePromise, function(result) {
+				when(db.getEntity(result._id), function(result) {
+					console.log(JSON.stringify(result, undefined, 2));
+					done(new Error('expected entity to not exist'));
+				}, function(err) {
+					console.log(JSON.stringify(err, undefined, 2));
+					when(db.findByField({field:'name',value:entity.name}),
+						function(result){
+							try{
+								expect(result.hits.total).to.equal(0);
+								done();
+							}catch(err){
+								done(err);
+							}
+						},done);
+				});
+			}, done);
+		}, done);
+	});
+
 	it('#deleteEntity - requires the id', function(done) {
 		var promises = [];
 
