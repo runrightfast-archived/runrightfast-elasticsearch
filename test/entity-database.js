@@ -823,6 +823,64 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+	it('#findAll - supports faceting', function(done) {
+		var entities = [];
+		var promises = [];
+		var entity;
+		for (var i = 0; i < 10; i++) {
+			entity = new Entity();
+			if(i % 2 === 0){
+				entity.name = 'even';
+			}else{
+				entity.name = 'odd';
+			}
+			console.log(JSON.stringify(entity,undefined,2));
+			entities.push(entity);
+			promises.push(db.createEntity(entities[i], true));
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(when.all(promises), function(result) {
+			console.log('create results: ' + JSON.stringify(result, undefined, 2));
+			when(db.findAll({
+				sort : {
+					field : 'createdOn',
+					descending : false
+				},
+				facet:{
+					name : 'name',
+					field : 'name'
+				},
+				timeout : 100,
+				version : true
+			}), function(result) {
+				console.log('db.findAll() result: ' + JSON.stringify(result, undefined, 2));
+				console.log('result.hits.total = ' + result.hits.total);
+
+				var createdOn;
+				try {
+					result.hits.hits.forEach(function(hit) {
+						if (lodash.isUndefined(createdOn)) {
+							createdOn = hit._source.createdOn;
+						} else {
+							expect(createdOn).to.be.lte(hit._source.createdOn);
+							createdOn = hit._source.createdOn;
+						}
+					});
+
+					expect(result.facets.name.total).to.equal(10);
+					expect(result.facets.name.terms.length).to.equal(2);
+					expect(result.facets.name.terms[0].count).to.equal(5);
+					expect(result.facets.name.terms[1].count).to.equal(5);
+
+					done();
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+		}, done);
+	});
+
 	it('#findAll validates its params', function(done) {
 		when(db.findAll({
 			timeout : 'INVALID'

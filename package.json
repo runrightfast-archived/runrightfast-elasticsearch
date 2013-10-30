@@ -1,6 +1,6 @@
 {
 	"name":"runrightfast-elasticsearch",
-	"version":"0.0.7",
+	"version":"0.0.8",
 	"description":"RunRightFast elasticsearch support",
 	"repository":{
 		"type":"git",
