@@ -1,6 +1,6 @@
 {
 	"name":"runrightfast-elasticsearch",
-	"version":"0.0.9",
+	"version":"0.0.10",
 	"description":"RunRightFast elasticsearch support",
 	"repository":{
 		"type":"git",
@@ -21,7 +21,7 @@
 	"dependencies":{
 		"lodash":"2.2.x",
 		"hoek":"1.1.x",
-		"runrightfast-commons":"git://github.com/runrightfast/runrightfast-commons.git#0.0.16",
+		"runrightfast-commons":"git://github.com/runrightfast/runrightfast-commons.git#0.0.17",
 		"log4js":"0.6.x",
 		"extend":"1.2.x",
 		"elastic.js":"1.1.x",		
