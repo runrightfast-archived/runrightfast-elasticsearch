@@ -28,7 +28,7 @@ module.exports = function(grunt) {
 					vars : true,
 					nomen : true,
 					plusplus : true,
-					predef : [ 'describe', 'it', 'before', 'after', 'emit', 'dateToArray' ]
+					predef : [ 'describe', 'it', 'before', 'after', 'afterEach','beforeEach' ]
 				},
 				options : {
 					log : 'out/lint.log',

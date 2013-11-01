@@ -98,55 +98,55 @@ describe('EntityDatabase', function() {
 
 	it('will throw an Error when constructed with invalid settings', function(done) {
 		try {
-			new EntityDatabase();
+			console.log(new EntityDatabase());
 			done(new Error('expected validation error when no settings are provided'));
 		} catch (err) {
 			console.log(err);
 		}
 
 		try {
-			new EntityDatabase({
+			console.log(new EntityDatabase({
 				index : 'EntityDatabaseSpec'.toLowerCase(),
 				type : 'EntityDatabaseTestDoc'.toLowerCase(),
 				entityConstructor : Entity,
 				logLevel : 'DEBUG'
-			});
+			}));
 			done(new Error('expected validation error when ejs is missing'));
 		} catch (err) {
 			console.log(err);
 		}
 
 		try {
-			new EntityDatabase({
+			console.log(new EntityDatabase({
 				ejs : ejs,
 				type : 'EntityDatabaseTestDoc'.toLowerCase(),
 				entityConstructor : Entity,
 				logLevel : 'DEBUG'
-			});
+			}));
 			done(new Error('expected validation error when index is missing'));
 		} catch (err) {
 			console.log(err);
 		}
 
 		try {
-			new EntityDatabase({
+			console.log(new EntityDatabase({
 				ejs : ejs,
 				index : 'EntityDatabaseSpec'.toLowerCase(),
 				entityConstructor : Entity,
 				logLevel : 'DEBUG'
-			});
+			}));
 			done(new Error('expected validation error when type is missing'));
 		} catch (err) {
 			console.log(err);
 		}
 
 		try {
-			new EntityDatabase({
+			console.log(new EntityDatabase({
 				ejs : ejs,
 				index : 'EntityDatabaseSpec'.toLowerCase(),
 				type : 'EntityDatabaseTestDoc'.toLowerCase(),
 				logLevel : 'DEBUG'
-			});
+			}));
 			done(new Error('expected validation error when entityConstructor is missing'));
 		} catch (err) {
 			console.log(err);
@@ -278,7 +278,7 @@ describe('EntityDatabase', function() {
 			done(new Error('expected entity to be not found'));
 		}, function(err) {
 			console.log(err);
-			expect(err.info).to.exist;
+			expect(lodash.isObject(err.info)).to.equal(true);
 			expect(err.code).to.equal(404);
 			done();
 		});
@@ -364,12 +364,15 @@ describe('EntityDatabase', function() {
 
 	it('can retrieve multiple entities in a single request', function(done) {
 		var promises = [];
-		for (var i = 0; i < 10; i++) {
-			promises.push(when(db.createEntity(new Entity()), function(result) {
-				return result;
-			}, function(err) {
-				return error;
-			}));
+		var i;
+		var success = function(result) {
+			return result;
+		};
+		var error = function(err) {
+			return err;
+		};
+		for (i = 0; i < 10; i++) {
+			promises.push(when(db.createEntity(new Entity()),success , error));
 		}
 
 		var ids = [];
@@ -389,35 +392,35 @@ describe('EntityDatabase', function() {
 
 	it('#getEntities validates that ids is an Array of Strings', function(done) {
 		var promises = [];
-		promises.push(when(db.getEntities(), function(result) {
+		promises.push(when(db.getEntities(), function() {
 			console.log('no args passed validation ???');
 			done(new Error('Expected validation error'));
 		}, function(err) {
 			console.log(err);
 		}));
 
-		promises.push(when(db.getEntities([ 1, 2 ]), function(result) {
+		promises.push(when(db.getEntities([ 1, 2 ]), function() {
 			console.log('[ 1, 2 ] passed validation ???');
 			done(new Error('Expected validation error'));
 		}, function(err) {
 			console.log(err);
 		}));
 
-		promises.push(when(db.getEntities([ '1', 2 ]), function(result) {
+		promises.push(when(db.getEntities([ '1', 2 ]), function() {
 			console.log("[ '1', 2 ] passed validation ???");
 			done(new Error('Expected validation error'));
 		}, function(err) {
 			console.log(err);
 		}));
 
-		promises.push(when(db.getEntities([ 1, '2' ]), function(result) {
+		promises.push(when(db.getEntities([ 1, '2' ]), function() {
 			console.log("[ 1, '2' ] passed validation ???");
 			done(new Error('Expected validation error'));
 		}, function(err) {
 			console.log(err);
 		}));
 
-		promises.push(when(db.getEntities({}), function(result) {
+		promises.push(when(db.getEntities({}), function() {
 			console.log("[ 1, '2' ] passed validation ???");
 			done(new Error('Expected validation error'));
 		}, function(err) {
@@ -431,7 +434,8 @@ describe('EntityDatabase', function() {
 
 	it('can create multiple entities in a bulk request', function(done) {
 		var entities = [];
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entities.push(new Entity());
 		}
 
@@ -566,7 +570,8 @@ describe('EntityDatabase', function() {
 
 	it('can bulk delete entities', function(done) {
 		var entities = [];
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entities.push(new Entity());
 		}
 
@@ -632,7 +637,8 @@ describe('EntityDatabase', function() {
 
 	it('can count the total number of entities', function(done) {
 		var entities = [];
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entities.push(new Entity());
 		}
 
@@ -680,7 +686,8 @@ describe('EntityDatabase', function() {
 	it('can find all and page through the results with default sort : updatedOn desc', function(done) {
 		var entities = [];
 		var promises = [];
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entities.push(new Entity());
 			promises.push(db.createEntity(entities[i], true));
 			idsToDelete = idsToDelete.concat(entities[i].id);
@@ -745,7 +752,8 @@ describe('EntityDatabase', function() {
 	it('can find all and page through the results with specified sort', function(done) {
 		var entities = [];
 		var promises = [];
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entities.push(new Entity());
 			promises.push(db.createEntity(entities[i], true));
 			idsToDelete = idsToDelete.concat(entities[i].id);
@@ -784,7 +792,8 @@ describe('EntityDatabase', function() {
 	it('#findAll - can specify search options : timeout, version, returnFields', function(done) {
 		var entities = [];
 		var promises = [];
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entities.push(new Entity());
 			promises.push(db.createEntity(entities[i], true));
 			idsToDelete = idsToDelete.concat(entities[i].id);
@@ -827,7 +836,8 @@ describe('EntityDatabase', function() {
 		var entities = [];
 		var promises = [];
 		var entity;
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entity = new Entity();
 			if(i % 2 === 0){
 				entity.name = 'even';
@@ -881,6 +891,60 @@ describe('EntityDatabase', function() {
 		}, done);
 	});
 
+    it('#findByField - with a range supports faceting within the range',function(done){
+    	var entities = [];		
+		var entity;
+		var i;
+		for (i = 0; i < 50; i++) {
+			entity = new Entity();
+			entity.index = i % 10;
+			console.log(JSON.stringify(entity,undefined,2));
+			entities.push(entity);			
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(db.createEntities(entities), 
+			function(result) {
+				console.log('created results: ' + result.items.length);
+				db.getEntity(result.items[0]._index);
+				db.refreshIndex().then(					
+					function(){
+						console.log('refreshed index');
+						try{
+							when(db.findByField({
+									field : 'index',
+									range : {
+										from : 1,
+										to : 2
+									},
+									sort : {
+										field : 'index'
+									},
+									facet:{
+										name : 'index',
+										field : 'index'
+									}
+								}), 
+								function(result) {								
+									try {
+										console.log('db.findByField() result: ' + JSON.stringify(result, undefined, 2));
+										console.log('result.hits.total = ' + result.hits.total);
+
+										expect(result.hits.total).to.equal(10);
+										expect(result.facets.index.total).to.equal(10);
+
+										done();
+									} catch (err) {
+										done(err);
+									}
+								}, done);
+						}catch(err){
+							done(err);
+						}
+					}, done);
+			},done);			
+    });
+
 	it('#findAll validates its params', function(done) {
 		when(db.findAll({
 			timeout : 'INVALID'
@@ -898,7 +962,8 @@ describe('EntityDatabase', function() {
 		var promises = [];
 		var now = Date.now();
 		var entity;
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entity = new Entity();
 			entity.updatedOn = new Date(now + (1000 * 60 * i));
 			entities.push(entity);
@@ -991,7 +1056,8 @@ describe('EntityDatabase', function() {
 		var promises = [];
 		var now = Date.now();
 		var entity;
-		for (var i = 0; i < 10; i++) {
+		var i;
+		for (i = 0; i < 10; i++) {
 			entity = new Entity();
 			entity.updatedOn = new Date(now + (1000 * 60 * i));
 			entities.push(entity);
@@ -1071,7 +1137,7 @@ describe('EntityDatabase', function() {
 
 	it('#setMapping - mapping param is required',function(done){
 		when(db.setMapping(),
-			function(result){
+			function(){
 				done(new Error('expected error'));
 			},function(err){
 				console.log(err);
@@ -1081,7 +1147,7 @@ describe('EntityDatabase', function() {
 
 	it('#createIndex - settings param is required',function(done){
 		when(db.createIndex(),
-			function(result){
+			function(){
 				done(new Error('expected error'));
 			},function(err){
 				console.log(err);
@@ -1091,7 +1157,7 @@ describe('EntityDatabase', function() {
 
 	it('#deleteEntity - refresh param must be a Boolean',function(done){
 		when(db.deleteEntity('adasda','adasda'),
-			function(result){
+			function(){
 				done(new Error('expected error'));
 			},function(err){
 				console.log(err);

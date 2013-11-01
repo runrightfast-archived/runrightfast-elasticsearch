@@ -38,9 +38,9 @@ describe('ElasticSearchClient', function() {
 
 	it('throws an Error when constructed with invalid settings', function(done) {
 		try {
-			new ElasticSearchClient({
+			console.log(new ElasticSearchClient({
 				host : 'localhost'
-			});
+			}));
 			done(new Error('Expected validation error'));
 		} catch (err) {
 			done();
