@@ -68,6 +68,14 @@ describe('EntityDatabase', function() {
 			            "updatedOn": {
 			                "type": "date",
 			                "format": "dateOptionalTime"
+			            },
+			            "lname": {
+			                "type": "string",
+			                "index" : "not_analyzed"
+			            },
+			            "fname": {
+			                "type": "string",
+			                "index" : "not_analyzed"
 			            }
 			        }     
 				}
@@ -1078,6 +1086,90 @@ describe('EntityDatabase', function() {
 				try {
 					expect(result.hits.total).to.equal(1);
 					expect(result.hits.hits.length).to.equal(1);
+					done();
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+
+		}, done);
+	});
+
+	it('#findByField can sort by multiple fields', function(done) {
+		var entities = [];
+		var promises = [];
+		var now = Date.now();
+		var entity;
+		var i;
+		for (i = 0; i < 10; i++) {
+			entity = new Entity();
+			entity.fname = 'Alfio - ' + i;
+			entity.lname = 'Zappala';
+			entity.updatedOn = new Date(now + (1000 * 60 * i));
+			entities.push(entity);
+			promises.push(db.createEntity(entities[i], true));
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(when.all(promises), function(result) {
+			console.log('create results: ' + JSON.stringify(result, undefined, 2));
+			when(db.findByField({
+				// field : 'updatedOn',
+				// value : new Date(now + (1000 * 60 * 5)),
+				field : 'lname',
+				value : 'Zappala',
+				//returnFields : [ 'fname', 'lname' ],
+				multiFieldSort : [
+					{field:'lname',descending:false},
+					{field:'fname',descending:false}
+				]
+			}), function(result) {
+				console.log('db.findByField() by lname: ' + JSON.stringify(result, undefined, 2));
+				console.log('result.hits.total = ' + result.hits.total);
+				console.log('result.hits.hits.length = ' + result.hits.hits.length);
+				try {
+					expect(result.hits.total).to.equal(10);
+					expect(result.hits.hits.length).to.equal(10);
+					done();
+				} catch (err) {
+					done(err);
+				}
+			}, done);
+
+		}, done);
+	});
+
+	it('#findAll can sort by multiple fields', function(done) {
+		var entities = [];
+		var promises = [];
+		var now = Date.now();
+		var entity;
+		var i;
+		for (i = 0; i < 10; i++) {
+			entity = new Entity();
+			entity.fname = 'Alfio - ' + i;
+			entity.lname = 'Zappala';
+			entity.updatedOn = new Date(now + (1000 * 60 * i));
+			entities.push(entity);
+			promises.push(db.createEntity(entities[i], true));
+			idsToDelete = idsToDelete.concat(entities[i].id);
+		}
+
+		when(when.all(promises), function(result) {
+			console.log('create results: ' + JSON.stringify(result, undefined, 2));
+			when(db.findAll({				
+				returnFields : [ 'fname', 'lname' ],
+				multiFieldSort : [
+					{field:'lname',descending:false},
+					{field:'fname',descending:false}
+				]
+			}), function(result) {
+				console.log('db.findByField() by lname: ' + JSON.stringify(result, undefined, 2));
+				console.log('result.hits.total = ' + result.hits.total);
+				console.log('result.hits.hits.length = ' + result.hits.hits.length);
+				try {
+					expect(result.hits.total).to.equal(10);
+					expect(result.hits.hits.length).to.equal(10);
 					done();
 				} catch (err) {
 					done(err);
