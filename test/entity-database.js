@@ -1121,7 +1121,7 @@ describe('EntityDatabase', function() {
 				//returnFields : [ 'fname', 'lname' ],
 				multiFieldSort : [
 					{field:'lname',descending:false},
-					{field:'fname',descending:false}
+					{field:'fname',descending:true}
 				]
 			}), function(result) {
 				console.log('db.findByField() by lname: ' + JSON.stringify(result, undefined, 2));
@@ -1130,6 +1130,14 @@ describe('EntityDatabase', function() {
 				try {
 					expect(result.hits.total).to.equal(10);
 					expect(result.hits.hits.length).to.equal(10);
+					var fname;
+					result.hits.hits.forEach(function(hit){
+						if(fname){
+							expect(hit._source.fname).to.be.lte(fname);
+						}
+
+						fname = hit._source.fname;						
+					});
 					done();
 				} catch (err) {
 					done(err);
